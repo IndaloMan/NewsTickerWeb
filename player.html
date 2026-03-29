@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NewsTicker Interactive Player</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #111;
+    color: #eee;
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+  }
+  h1 {
+    font-size: 1.1rem;
+    color: #aaa;
+    margin-bottom: 20px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* --- Setup panel --- */
+  #setup {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px 28px;
+    margin-bottom: 24px;
+    width: 100%;
+    max-width: 720px;
+  }
+  #setup h2 { font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+  .file-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .file-row label { color: #bbb; font-size: 0.9rem; min-width: 80px; }
+  .file-btn {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    color: #ddd;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .file-btn:hover { background: #333; }
+  .file-name { color: #888; font-size: 0.8rem; font-style: italic; }
+  #setup-hint { color: #555; font-size: 0.8rem; margin-top: 12px; }
+
+  /* --- Player --- */
+  #player-container {
+    width: 100%;
+    max-width: 960px;
+    display: none;
+  }
+  video {
+    width: 100%;
+    display: block;
+    background: #000;
+    border-radius: 4px 4px 0 0;
+  }
+
+  /* --- Active ticker bar --- */
+  #active-bar {
+    background: #CC0000;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 0 0 4px 4px;
+    margin-bottom: 16px;
+  }
+  #active-bar .no-item { color: rgba(255,255,255,0.4); font-weight: normal; font-size: 0.85rem; }
+  #active-bar a {
+    color: #FFD700;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  #active-bar a:hover { color: #ffe566; }
+  #active-bar .plain-text { color: #fff; }
+
+  /* --- Items table --- */
+  #items-panel {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  #items-panel h3 {
+    font-size: 0.75rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 10px 14px 8px;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  .item-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    border-bottom: 1px solid #222;
+    transition: background 0.15s;
+  }
+  .item-row:last-child { border-bottom: none; }
+  .item-row.active { background: #2a1a00; }
+  .item-row .ts { color: #555; font-size: 0.75rem; min-width: 100px; font-family: monospace; }
+  .item-row .txt { flex: 1; font-size: 0.9rem; color: #bbb; }
+  .item-row.active .txt { color: #fff; font-weight: bold; }
+  .item-row .lnk a {
+    color: #4a9eff;
+    font-size: 0.8rem;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .item-row .lnk a:hover { text-decoration: underline; }
+  .item-row.active .lnk a { color: #FFD700; }
+</style>
+</head>
+<body>
+
+<h1>NewsTicker Interactive Player</h1>
+
+<div id="setup">
+  <h2>Load files</h2>
+  <div class="file-row">
+    <label>Video</label>
+    <button class="file-btn" onclick="document.getElementById('video-input').click()">Browse…</button>
+    <span class="file-name" id="video-name">No file selected</span>
+    <input type="file" id="video-input" accept="video/*" style="display:none">
+  </div>
+  <div class="file-row">
+    <label>JSON</label>
+    <button class="file-btn" onclick="document.getElementById('json-input').click()">Browse…</button>
+    <span class="file-name" id="json-name">No file selected</span>
+    <input type="file" id="json-input" accept=".json" style="display:none">
+  </div>
+  <p id="setup-hint">Load both files to start. The JSON is generated automatically when you render a video in NewsTickerWeb.</p>
+</div>
+
+<div id="player-container">
+  <video id="video" controls></video>
+  <div id="active-bar"><span class="no-item">Play the video — active ticker items will appear here as clickable links</span></div>
+  <div id="items-panel">
+    <h3>All ticker items</h3>
+    <div id="items-table"></div>
+  </div>
+</div>
+
+<script>
+  var timings = [];
+  var videoEl = document.getElementById('video');
+  var activeBar = document.getElementById('active-bar');
+  var itemsTable = document.getElementById('items-table');
+  var playerContainer = document.getElementById('player-container');
+
+  document.getElementById('video-input').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    videoEl.src = URL.createObjectURL(file);
+    document.getElementById('video-name').textContent = file.name;
+    checkReady();
+
+    // Update JSON hint with expected filename, then auto-open JSON picker
+    var base = file.name.replace(/\.[^.]+$/, '').replace(/-N$/i, '');
+    var expectedJson = base + '-J.json';
+    document.getElementById('json-name').textContent = 'Looking for: ' + expectedJson + ' — select it below';
+    document.getElementById('json-input').value = '';
+    setTimeout(function() {
+      document.getElementById('json-input').click();
+    }, 300);
+  });
+
+  document.getElementById('json-input').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    document.getElementById('json-name').textContent = file.name;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        timings = JSON.parse(ev.target.result);
+        buildTable();
+        checkReady();
+      } catch(err) {
+        alert('Could not read JSON file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  function checkReady() {
+    if (videoEl.src && videoEl.src !== window.location.href && timings.length > 0) {
+      playerContainer.style.display = 'block';
+    }
+  }
+
+  function buildTable() {
+    itemsTable.innerHTML = '';
+    timings.forEach(function(item, i) {
+      var row = document.createElement('div');
+      row.className = 'item-row';
+      row.id = 'row-' + i;
+
+      var ts = document.createElement('span');
+      ts.className = 'ts';
+      ts.textContent = fmt(item.start) + ' \u2013 ' + fmt(item.end);
+
+      var txt = document.createElement('span');
+      txt.className = 'txt';
+      txt.textContent = item.text;
+
+      var lnk = document.createElement('span');
+      lnk.className = 'lnk';
+      if (item.url) {
+        var a = document.createElement('a');
+        a.href = '#';
+        a.textContent = '\u2197 Open';
+        (function(url) {
+          a.addEventListener('click', function(e) {
+            e.preventDefault();
+            videoEl.pause();
+            openLink(url);
+          });
+        })(item.url);
+        lnk.appendChild(a);
+      }
+
+      row.appendChild(ts);
+      row.appendChild(txt);
+      row.appendChild(lnk);
+      itemsTable.appendChild(row);
+    });
+  }
+
+  function openLink(url) {
+    window.open(url, '_tickerlink', 'width=1024,height=768,noopener,noreferrer');
+  }
+
+  function fmt(s) {
+    var m = Math.floor(s / 60);
+    var sec = (s % 60).toFixed(1);
+    return m + ':' + (parseFloat(sec) < 10 ? '0' : '') + sec;
+  }
+
+  function esc(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  videoEl.addEventListener('timeupdate', function() {
+    var t = videoEl.currentTime;
+    var active = null;
+
+    timings.forEach(function(item, i) {
+      var row = document.getElementById('row-' + i);
+      if (t >= item.start && t <= item.end) {
+        active = item;
+        if (row) row.classList.add('active');
+      } else {
+        if (row) row.classList.remove('active');
+      }
+    });
+
+    if (active) {
+      if (active.url) {
+        activeBar.innerHTML =
+          '<a href="#" onclick="videoEl.pause(); openLink(\'' + esc(active.url) + '\'); return false;">' +
+          esc(active.text) + '</a>';
+      } else {
+        activeBar.innerHTML = '<span class="plain-text">' + esc(active.text) + '</span>';
+      }
+    } else {
+      activeBar.innerHTML = '<span class="no-item">No active ticker item</span>';
+    }
+  });
+</script>
+</body>
+</html>

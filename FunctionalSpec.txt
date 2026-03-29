@@ -1,0 +1,20 @@
+This document contains the requirements for a fully configurable news ticker overlay for mp4 videos created using Filmora 15.
+
+Explanation of news ticker: https://en.wikipedia.org/wiki/News_ticker
+
+It will be written in Python and will run locally on my PC.  Code location: C:\Users\indal\OneDrive\My Documents\Spain\Tech\My Apps\NewsTicker
+
+UI requirements — 4-tab UI:
+
+📝 Content — ticker items (one per line), separator, LIVE/BREAKING label, logo image
+🎨 Style — colour pickers for all 4 elements, font size/height/speed sliders, custom .ttf
+⚙️ Output — resolution, FPS, duration, output paths, source video for composite
+🚀 Render — choose Standalone / Composite / Both, progress bar, one-click render
+
+Output modes:
+
+Standalone — ticker bar MP4 at your chosen width/duration (black BG, easy to key out)
+Composite — ticker burned onto bottom of your source video, auto-matching its FPS and dimensions
+
+Settings auto-save to ticker_config.json between sessions.
+

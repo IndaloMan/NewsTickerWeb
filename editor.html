@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NewsTicker JSON Editor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #111;
+    color: #eee;
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+  }
+  h1 {
+    font-size: 1.1rem;
+    color: #aaa;
+    margin-bottom: 20px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .panel {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 860px;
+  }
+  .panel h2 {
+    font-size: 0.8rem;
+    color: #777;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+  }
+
+  /* Video */
+  video {
+    width: 100%;
+    display: block;
+    background: #000;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  #duration-line {
+    font-size: 0.8rem;
+    color: #666;
+    font-family: monospace;
+  }
+
+  /* File row */
+  .file-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .file-row label { color: #bbb; font-size: 0.9rem; min-width: 60px; }
+  .file-name { color: #666; font-size: 0.8rem; font-style: italic; }
+
+  /* Buttons */
+  .btn {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    color: #ddd;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .btn:hover { background: #333; }
+  .btn-primary {
+    background: #1a3a1a;
+    border-color: #2a6a2a;
+    color: #6fda6f;
+  }
+  .btn-primary:hover { background: #1e4a1e; }
+  .btn-danger {
+    background: #2a1a1a;
+    border-color: #5a2a2a;
+    color: #da6f6f;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+  .btn-danger:hover { background: #3a2020; }
+  .btn-edit {
+    background: #1a2a3a;
+    border-color: #2a4a6a;
+    color: #6fb0da;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+  .btn-edit:hover { background: #1e3a5a; }
+  .btn-time {
+    background: #1a2a3a;
+    border-color: #2a4a6a;
+    color: #6fb0da;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .btn-time:hover { background: #1e3a5a; }
+
+  /* Add item form */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 16px;
+    margin-bottom: 12px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group label { font-size: 0.75rem; color: #777; text-transform: uppercase; letter-spacing: 0.05em; }
+  .form-group input {
+    background: #222;
+    border: 1px solid #3a3a3a;
+    color: #eee;
+    padding: 7px 10px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+  .form-group input:focus { outline: none; border-color: #555; }
+  .form-group input::placeholder { color: #555; }
+  .full-width { grid-column: 1 / -1; }
+
+  .time-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .time-row input { flex: 1; }
+
+  .form-actions { display: flex; gap: 10px; align-items: center; }
+  #add-error { font-size: 0.8rem; color: #da6f6f; }
+
+  /* Items table */
+  #items-table { width: 100%; }
+  .item-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #222;
+    font-size: 0.85rem;
+  }
+  .item-row:last-child { border-bottom: none; }
+  .item-row:hover { background: #1e1e1e; }
+  .item-ts { color: #555; font-family: monospace; font-size: 0.75rem; }
+  .item-text { color: #ccc; }
+  .item-url a { color: #4a9eff; text-decoration: none; font-size: 0.8rem; }
+  .item-url a:hover { text-decoration: underline; }
+  .item-url .no-url { color: #444; font-size: 0.8rem; }
+  #no-items { color: #555; font-size: 0.85rem; padding: 12px 10px; font-style: italic; }
+
+  .table-header {
+    display: grid;
+    grid-template-columns: 90px 1fr 1fr auto auto;
+    gap: 10px;
+    padding: 6px 10px;
+    border-bottom: 1px solid #2a2a2a;
+    font-size: 0.7rem;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .editing-notice {
+    font-size: 0.8rem;
+    color: #6fb0da;
+    margin-left: 8px;
+  }
+
+  /* Export */
+  #export-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  #export-hint { font-size: 0.8rem; color: #555; }
+</style>
+</head>
+<body>
+
+<h1>NewsTicker JSON Editor</h1>
+
+<!-- Video loader -->
+<div class="panel">
+  <h2>Video</h2>
+  <div class="file-row">
+    <label>Video</label>
+    <button class="btn" onclick="document.getElementById('video-input').click()">Browse…</button>
+    <span class="file-name" id="video-name">No file selected — load a video to use "use current time" buttons</span>
+    <input type="file" id="video-input" accept="video/*" style="display:none">
+  </div>
+  <div class="file-row">
+    <label>JSON</label>
+    <button class="btn" onclick="document.getElementById('json-input').click()">Browse…</button>
+    <span class="file-name" id="json-name">No file selected — load an existing JSON to edit it</span>
+    <input type="file" id="json-input" accept=".json" style="display:none">
+  </div>
+  <div id="video-wrap" style="display:none; margin-top:12px;">
+    <video id="video" controls></video>
+    <div id="duration-line">Duration: —</div>
+  </div>
+</div>
+
+<!-- Add item -->
+<div class="panel">
+  <h2>Add Ticker Item<span class="editing-notice" id="editing-notice" style="display:none;">&#9998; Editing item</span></h2>
+  <div class="form-grid">
+    <div class="form-group full-width">
+      <label>Text</label>
+      <input type="text" id="in-text" placeholder="Headline or ticker item text">
+    </div>
+    <div class="form-group full-width">
+      <label>URL (optional)</label>
+      <input type="url" id="in-url" placeholder="https://example.com">
+    </div>
+    <div class="form-group">
+      <label>Start time (seconds)</label>
+      <div class="time-row">
+        <input type="number" id="in-start" placeholder="0.0" min="0" step="0.1">
+        <button class="btn btn-time" onclick="useCurrentTime('in-start')">&#x25B6; Use current</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>End time (seconds)</label>
+      <div class="time-row">
+        <input type="number" id="in-end" placeholder="5.0" min="0" step="0.1">
+        <button class="btn btn-time" onclick="useCurrentTime('in-end')">&#x25B6; Use current</button>
+      </div>
+    </div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-primary" id="submit-btn" onclick="submitForm()">+ Add item</button>
+    <button class="btn" id="cancel-btn" onclick="cancelEdit()" style="display:none;">Cancel</button>
+    <span id="add-error"></span>
+  </div>
+</div>
+
+<!-- Items list -->
+<div class="panel">
+  <h2>Items (<span id="item-count">0</span>)</h2>
+  <div class="table-header">
+    <span>Timing</span><span>Text</span><span>URL</span><span></span><span></span>
+  </div>
+  <div id="items-table">
+    <div id="no-items">No items yet — add one above.</div>
+  </div>
+</div>
+
+<!-- Export -->
+<div class="panel">
+  <h2>Export</h2>
+  <div id="export-section">
+    <button class="btn btn-primary" onclick="exportJSON()">&#x2913; Download JSON</button>
+    <span id="export-hint">Saves a .json file you can load into player.html</span>
+  </div>
+</div>
+
+<script>
+  var items = [];
+  var videoEl = document.getElementById('video');
+  var editingIndex = -1;
+  var videoFileName = '';
+
+  // --- Video loader ---
+  document.getElementById('video-input').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    videoEl.src = URL.createObjectURL(file);
+    videoFileName = file.name;
+    document.getElementById('video-name').textContent = file.name;
+    document.getElementById('video-wrap').style.display = 'block';
+    videoEl.onloadedmetadata = function() {
+      document.getElementById('duration-line').textContent =
+        'Duration: ' + fmt(videoEl.duration) + '  (' + videoEl.duration.toFixed(2) + 's)';
+    };
+
+    // Update JSON hint with expected filename, then auto-open JSON picker
+    var expectedJson = deriveJsonName(file.name);
+    document.getElementById('json-name').textContent = 'Looking for: ' + expectedJson + ' — select it or cancel to start fresh';
+    // Reset json input so change fires even if same file re-selected
+    document.getElementById('json-input').value = '';
+    setTimeout(function() {
+      document.getElementById('json-input').click();
+    }, 300);
+  });
+
+  // --- JSON loader ---
+  document.getElementById('json-input').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) {
+      document.getElementById('json-name').textContent = 'No JSON loaded — starting fresh';
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var loaded = JSON.parse(ev.target.result);
+        if (!Array.isArray(loaded)) throw new Error('Expected a JSON array.');
+        items = loaded;
+        document.getElementById('json-name').textContent = file.name + ' (' + items.length + ' items loaded)';
+        cancelEdit();
+        renderTable();
+      } catch(err) {
+        alert('Could not read JSON file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // --- Use current video time ---
+  function useCurrentTime(fieldId) {
+    if (!videoEl.src || videoEl.src === window.location.href) {
+      setError('Load a video first to use this button.');
+      return;
+    }
+    document.getElementById(fieldId).value = videoEl.currentTime.toFixed(1);
+    setError('');
+  }
+
+  // --- Submit form (add or save edit) ---
+  function submitForm() {
+    var text = document.getElementById('in-text').value.trim();
+    var url  = document.getElementById('in-url').value.trim();
+    var startVal = document.getElementById('in-start').value;
+    var endVal   = document.getElementById('in-end').value;
+
+    if (!text) { setError('Text is required.'); return; }
+    if (startVal === '' || endVal === '') { setError('Start and end times are required.'); return; }
+
+    var start = parseFloat(startVal);
+    var end   = parseFloat(endVal);
+
+    if (isNaN(start) || isNaN(end)) { setError('Start and end must be numbers.'); return; }
+    if (end <= start) { setError('End time must be after start time.'); return; }
+
+    if (url && !/^https?:\/\//i.test(url)) {
+      setError('URL must start with http:// or https://');
+      return;
+    }
+
+    var entry = { text: text, url: url, start: round2(start), end: round2(end) };
+
+    if (editingIndex >= 0) {
+      items[editingIndex] = entry;
+      editingIndex = -1;
+      document.getElementById('submit-btn').textContent = '+ Add item';
+      document.getElementById('cancel-btn').style.display = 'none';
+      document.getElementById('editing-notice').style.display = 'none';
+    } else {
+      items.push(entry);
+    }
+
+    items.sort(function(a, b) { return a.start - b.start; });
+
+    document.getElementById('in-text').value = '';
+    document.getElementById('in-url').value = '';
+    document.getElementById('in-start').value = '';
+    document.getElementById('in-end').value = '';
+    setError('');
+
+    renderTable();
+  }
+
+  // --- Edit item ---
+  function editItem(idx) {
+    var item = items[idx];
+    document.getElementById('in-text').value  = item.text;
+    document.getElementById('in-url').value   = item.url;
+    document.getElementById('in-start').value = item.start;
+    document.getElementById('in-end').value   = item.end;
+    editingIndex = idx;
+    document.getElementById('submit-btn').textContent = 'Save changes';
+    document.getElementById('cancel-btn').style.display = 'inline-block';
+    document.getElementById('editing-notice').style.display = 'inline';
+    document.getElementById('in-text').focus();
+    setError('');
+  }
+
+  // --- Cancel edit ---
+  function cancelEdit() {
+    editingIndex = -1;
+    document.getElementById('in-text').value  = '';
+    document.getElementById('in-url').value   = '';
+    document.getElementById('in-start').value = '';
+    document.getElementById('in-end').value   = '';
+    document.getElementById('submit-btn').textContent = '+ Add item';
+    document.getElementById('cancel-btn').style.display = 'none';
+    document.getElementById('editing-notice').style.display = 'none';
+    setError('');
+  }
+
+  // --- Delete item ---
+  function deleteItem(idx) {
+    items.splice(idx, 1);
+    renderTable();
+  }
+
+  // --- Render table ---
+  function renderTable() {
+    var table = document.getElementById('items-table');
+    document.getElementById('item-count').textContent = items.length;
+
+    if (items.length === 0) {
+      table.innerHTML = '<div id="no-items">No items yet — add one above.</div>';
+      return;
+    }
+
+    var html = '';
+    items.forEach(function(item, i) {
+      html += '<div class="item-row">';
+      html += '<span class="item-ts">' + fmt(item.start) + ' &ndash; ' + fmt(item.end) + '</span>';
+      html += '<span class="item-text">' + esc(item.text) + '</span>';
+      if (item.url) {
+        html += '<span class="item-url"><a href="' + esc(item.url) + '" target="_blank" rel="noopener noreferrer">' + esc(item.url) + '</a></span>';
+      } else {
+        html += '<span class="item-url"><span class="no-url">—</span></span>';
+      }
+      html += '<button class="btn btn-edit" onclick="editItem(' + i + ')">Edit</button>';
+      html += '<button class="btn btn-danger" onclick="deleteItem(' + i + ')">Remove</button>';
+      html += '</div>';
+    });
+    table.innerHTML = html;
+  }
+
+  // --- Derive JSON filename from video filename ---
+  function deriveJsonName(name) {
+    var src = name || videoFileName;
+    if (!src) return 'ticker_timings-J.json';
+    var base = src.replace(/\.[^.]+$/, ''); // strip extension
+    base = base.replace(/-N$/i, '');        // strip trailing -N
+    return base + '-J.json';
+  }
+
+  // --- Export JSON ---
+  function exportJSON() {
+    if (items.length === 0) {
+      setError('');
+      alert('No items to export.');
+      return;
+    }
+    var json = JSON.stringify(items, null, 2);
+    var blob = new Blob([json], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = deriveJsonName();
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // --- Helpers ---
+  function fmt(s) {
+    var m = Math.floor(s / 60);
+    var sec = (s % 60).toFixed(1);
+    return m + ':' + (parseFloat(sec) < 10 ? '0' : '') + sec;
+  }
+
+  function round2(n) {
+    return Math.round(n * 100) / 100;
+  }
+
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function setError(msg) {
+    document.getElementById('add-error').textContent = msg;
+  }
+
+  // Allow Enter key to submit the form
+  ['in-text','in-url','in-start','in-end'].forEach(function(id) {
+    document.getElementById(id).addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') submitForm();
+    });
+  });
+</script>
+</body>
+</html>

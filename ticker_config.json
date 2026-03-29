@@ -1,0 +1,50 @@
+{
+  "content": {
+    "items": [
+      "A quiet walk along the paseo (it was only 13C!).  The calm before the Easter influx of sunseekers...."
+    ],
+    "label": "MOJACAR UPDATE:",
+    "logo_path": "C:/Users/indal/OneDrive/My Documents/Spain/Tech/My Apps/NewsTicker/Test files/indaloman3.png",
+    "logo_enabled": true,
+    "right_logo_path": "C:/Users/indal/OneDrive/My Documents/Spain/Tech/My Apps/NewsTicker/Test files/PBSlogo.png",
+    "right_logo_enabled": false
+  },
+  "style": {
+    "bar_color": "#CC0000",
+    "text_color": "#FFFFFF",
+    "separator_color": "#FFFF00",
+    "label_color": "#FFFFFF",
+    "font_path": "",
+    "font_size": 32,
+    "bar_height": 60,
+    "scroll_speed": 180,
+    "logo_spin_speed": 45
+  },
+  "output": {
+    "start_time": 5.0,
+    "end_time": 12.0,
+    "loop": false,
+    "location": "C:/Users/indal/OneDrive/Pictures/Samsung Gallery/DCIM/Filmora exports",
+    "source_video_path": "C:/Users/indal/OneDrive/Pictures/Samsung Gallery/DCIM/Filmora exports/20260328 - Paseo ASMR.mp4",
+    "composite_path": "C:/Users/indal/OneDrive/Pictures/Samsung Gallery/DCIM/Filmora exports\\20260328 - Paseo ASMR-N.mp4",
+    "delete_source": false,
+    "fps": 25,
+    "resolution": "1920x1080",
+    "standalone_path": "test-standalone.mp4"
+  },
+  "render": {
+    "mode": "composite"
+  },
+  "style_landscape": {
+    "font_size": 32,
+    "bar_height": 60,
+    "scroll_speed": 180,
+    "logo_spin_speed": 45
+  },
+  "style_portrait": {
+    "font_size": 72,
+    "bar_height": 120,
+    "scroll_speed": 150,
+    "logo_spin_speed": 45
+  }
+}
