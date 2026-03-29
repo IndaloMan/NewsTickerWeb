@@ -1,101 +1,94 @@
-# NewsTicker
+# NewsTickerWeb
 
-A configurable news ticker overlay generator for MP4 videos, designed for use with Filmora 15.
+A configurable news ticker overlay generator for MP4 videos, with browser-based tools for creating and playing back interactive ticker overlays.
 
-Generates a scrolling news ticker bar burned onto the bottom of a source video, auto-matching its resolution and frame rate.
+**GitHub Pages:** https://indaloman.github.io/NewsTickerWeb/
 
 ---
 
-## Requirements
+## Components
+
+### Python desktop app
+Renders a scrolling news ticker bar burned onto the bottom of a source video.
+
+- `main.py` — entry point, Tkinter UI
+- `ticker_engine.py` — Pillow frame renderer (scroll, logos, label)
+- `video_renderer.py` — FFmpeg subprocess (detect, render, composite). Auto-writes a `-J.json` timing file alongside the output video.
+- `config_manager.py` — loads/saves `ticker_config.json`
+- `ui/content_tab.py` — Content tab (items, label, timing, paths, render)
+- `ui/style_tab.py` — Style tab (colours, font, sizes, logos)
+
+### editor.html
+Browser tool for creating and editing JSON timing files.
+
+- Load a video → JSON file picker opens automatically
+- Add, edit, or delete ticker items (text, URL, start/end times)
+- "Use current" buttons capture video playback position as timestamps
+- Export downloads a named JSON file (`videoname-J.json`)
+- Load an existing JSON to edit it
+
+### player.html
+Browser tool for playing a video with an interactive ticker overlay.
+
+- Load a video → JSON file picker opens automatically
+- Ticker items highlight in sync with video playback
+- Active item shown as a clickable link above the player
+- Links open in a reused popup window (1024×768), video pauses on click
+- All items listed below with timestamps and links
+
+---
+
+## File naming convention
+
+| File | Pattern |
+|---|---|
+| Rendered video | `YYYYMMDD - Name-N.mp4` |
+| JSON timing file | `YYYYMMDD - Name-J.json` |
+
+---
+
+## JSON timing format
+
+```json
+[
+  { "text": "Headline text", "url": "https://example.com", "start": 7.9, "end": 11.2 },
+  { "text": "Another item",  "url": "",                    "start": 13.8, "end": 19.8 }
+]
+```
+
+---
+
+## Python app requirements
 
 - Python 3.13+
 - [Pillow](https://pillow.readthedocs.io/) — frame rendering
-- [imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg) — bundles FFmpeg (no separate install needed)
-
-Install dependencies:
+- [imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg) — bundles FFmpeg
 
 ```
 pip install pillow imageio-ffmpeg
 ```
 
----
-
-## Running
-
+Run with:
 ```
 python main.py
 ```
 
-Settings are auto-saved to `ticker_config.json` on close and on each render.
-
 ---
 
-## Interface
+## Production use (Option A)
 
-The app has two tabs: **Content** and **Style**.
-
-### Content tab
-
-| Section | Description |
-|---|---|
-| Ticker Items | One news item per line. Items scroll right-to-left, separated by ¦ (separator omitted when only one item and loop is off) |
-| Ticker Label | Fixed label on the left edge — type free text or use the LIVE / BREAKING shortcuts |
-| Ticker Timing | Start and end times (seconds) to protect opening/closing titles. **Loop** — ticked: scrolls continuously for the full start→end window; unticked: plays once then hides |
-| Source Video | The MP4/MOV/AVI/MKV file to burn the ticker onto |
-| Output MP4 | Where to save the finished composite video |
-| Progress / Log | Live progress bar and detailed FFmpeg log during render |
-| Create News Ticker | Renders the composite. Exit saves config and closes |
-
-### Style tab
-
-| Section | Description |
-|---|---|
-| Colours | Bar background, ticker text, separator (¦), label (LIVE/BREAKING) — click to pick |
-| Font | Optional custom .ttf file; falls back to system Arial |
-| Size & Speed | Font size, bar height, scroll speed, logo spin speed. Sliders auto-update when a source video is selected based on its orientation (portrait/landscape). Use **Save sliders** to store the current values as the default for that orientation |
-| Left Logo | PNG/JPG burned as a circular spinning disc on the left edge |
-| Right Logo | PNG/JPG scaled to bar height, static, flush to the right edge |
-
----
-
-## How it works
-
-1. On render, the source video's resolution and FPS are auto-detected via ffprobe.
-2. A ticker bar MP4 is rendered frame-by-frame using Pillow and piped to FFmpeg. The bar starts blank; text enters from the right and scrolls left.
-3. With loop off, the ticker plays once and closes — duration is calculated automatically from text length and scroll speed. With loop on, the ticker fills the full start→end window.
-4. FFmpeg overlays the ticker bar onto the bottom of the source video using a `filter_complex` overlay, active only between the configured start and end times.
-5. Audio from the source video is copied unchanged.
-
----
-
-## File structure
-
-```
-NewsTicker/
-├── main.py                 — entry point, 2-tab Tkinter app
-├── config_manager.py       — load/save ticker_config.json
-├── ticker_engine.py        — Pillow frame renderer (scroll, logos, label)
-├── video_renderer.py       — FFmpeg subprocess: detect, render, composite
-├── ticker_config.json      — auto-created on first run
-└── ui/
-    ├── content_tab.py      — Content tab (items, label, timing, paths, render)
-    └── style_tab.py        — Style tab (colours, font, sizes, logos)
-```
+For public viewers, host the video and its `-J.json` file on a web server. The player can fetch the JSON automatically from a predictable URL alongside the video — no file picker needed. Videos are too large for GitHub; host them externally (CDN, Google Drive, own server).
 
 ---
 
 ## Configuration
 
-All settings are stored in `ticker_config.json` and loaded automatically on startup. Delete the file to reset to defaults.
-
-Key settings:
+Settings auto-save to `ticker_config.json` on close and on each render.
 
 | Key | Description |
 |---|---|
-| `content.items` | List of ticker text items |
-| `content.label` | Fixed left label text (blank = none) |
-| `content.logo_path` | Path to left logo image |
-| `content.right_logo_path` | Path to right logo image |
+| `content.items` | List of ticker text items (supports `text \| https://url` format) |
+| `content.label` | Fixed left label (LIVE / BREAKING / custom / blank) |
 | `style.bar_color` | Bar background hex colour |
 | `style.bar_height` | Bar height in pixels |
 | `style.scroll_speed` | Scroll speed in pixels/second |
@@ -103,7 +96,3 @@ Key settings:
 | `output.end_time` | Ticker end time in seconds |
 | `output.source_video_path` | Source video to composite onto |
 | `output.composite_path` | Output file path |
-| `style_landscape.font_size` | Saved font size preset for landscape video |
-| `style_landscape.bar_height` | Saved bar height preset for landscape video |
-| `style_portrait.font_size` | Saved font size preset for portrait video |
-| `style_portrait.bar_height` | Saved bar height preset for portrait video |
